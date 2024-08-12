@@ -31,7 +31,7 @@ def get_data(username: str) -> dict:
 
     # 计算出今天0的时间戳，中国位于东八区因此需要调整8小时的偏移量
     now = time.time() + 8 * 3600
-    start_time = now - now % 86400
+    start_time = now - now % 86400 - 8 * 3600
 
     # 调用api获取记录
     headers = {

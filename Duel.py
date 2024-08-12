@@ -174,3 +174,9 @@ def judge(duel_dict: dict, challenged: int) -> str:
     df['duel_status'][idx2] = 1
     df.to_excel('qqid.xlsx', index=False)
     return mess
+def reset(qq_num:int) -> str:
+    df = pd.read_excel('qqid.xlsx')
+    idx = df['qq'].to_list().index(qq_num)
+    df['duel_status'][idx] = 1
+    df.to_excel('qqid.xlsx', index=False)
+    return '重置成功'

@@ -19,7 +19,7 @@ def get_one(key: str) -> str:
     返回：
     str：要发送的内容
     """
-    path = fr"{os.path.dirname(__file__)}\img\{key}"
+    path = fr"{os.path.dirname(__file__)}/img/{key}"
     if os.path.exists(path):  # 存在这个关键词
         cnt = len(os.listdir(path))  # 这个关键词下文件的数量
         if cnt:
@@ -29,11 +29,12 @@ def get_one(key: str) -> str:
                 f = open(file, 'r', encoding="utf-8").readlines()
                 mess = f[random.randint(0, len(f) - 1)].strip()
             elif 'mp4' in file:
-                mess = f'[CQ:video,file={file}]'
+                mess = f'[CQ:video,file=file:{file}]'
             elif 'mp3' in file:
-                mess = f'[CQ:file,file={file}]'
+                mess = f'[CQ:file,file=file:{file}]'
             else:
-                mess = f'[CQ:image,file={file}]'
+                mess = f'[CQ:image,file=file:{file}]'
+            print(mess)
             return mess
     return '没有这个关键词'
 
@@ -51,7 +52,7 @@ def add_one(data: dict, key: str) -> str:
     """
     message_id = "-" + re.findall(r"[0-9]+", data['message'])[0]  # 之前@的消息的id
     print(message_id)
-    path = fr"{os.path.dirname(__file__)}\img\{key}"
+    path = fr"{os.path.dirname(__file__)}/img/{key}"
     if not os.path.exists(path):
         os.makedirs(path)
     content = requests.get(f"http://127.0.0.1:5020/get_msg", params={'message_id': message_id}).json()['data'][
@@ -65,12 +66,12 @@ def add_one(data: dict, key: str) -> str:
             "https://multimedia.nt.qq.com.cn/", "https://gchat.qpic.cn/")  # 重写url，爬取文件
         print(file_url)
         resp = requests.get(file_url, headers=headers, verify=False).content
-        file = fr'{path}\{file_name}'
+        file = fr'{path}/{file_name}'
         with open(file, 'wb') as f:  # 写入文件
             f.write(resp)
     else:
         # 如果消息中没有url，则不是可以下载的文件，当作文本写入
-        file = fr'{path}\{key}.txt'
+        file = fr'{path}/{key}.txt'
         if not os.path.exists(file):
             with open(file, 'w', encoding="utf-8") as f:
                 f.write(content + "\n")
@@ -92,14 +93,14 @@ def del_one(data: dict, key: str) -> str:
     str：要发送的内容
     """
     message_id = "-" + re.findall(r"[0-9]+", data['message'])[0]  # 之前@的消息的id
-    path = fr"{os.path.dirname(__file__)}\img\{key}"
+    path = fr"{os.path.dirname(__file__)}/img/{key}"
     if os.path.exists(path):
         content = requests.get(f"http://127.0.0.1:5020/get_msg", params={'message_id': message_id}).json()['data'][
             'message']  # @的消息的内容
         if 'url' in content:
             for i in os.listdir(path):
                 if i == content.split(',')[1]:
-                    os.remove(fr'{path}\{i}')
+                    os.remove(fr'{path}/{i}')
                     return '删除成功'
         else:
             return '不支持删除文本'
@@ -117,7 +118,7 @@ def del_all(data: str, key: str) -> str:
     str：要发送的内容
     """
 
-    path = fr"{os.path.dirname(__file__)}\img\{key}"
+    path = fr"{os.path.dirname(__file__)}/img/{key}"
     if os.path.exists(path):
         if data['sender']['user_id'] in [1040530821]:
             shutil.rmtree(path)
@@ -134,9 +135,9 @@ def show_all() -> str:
     str：返回检索的信息
     """
     mess = "可以使用的关键词："
-    path = fr"{os.path.dirname(__file__)}\img"
+    path = fr"{os.path.dirname(__file__)}/img"
     for i in os.listdir(path):
-        if os.listdir(f'{path}\\{i}'):
+        if os.listdir(f'{path}/{i}'):
             mess = mess + ' ' + i
     if mess == "可以使用的关键词：":
         mess = "没有可以使用关键词"

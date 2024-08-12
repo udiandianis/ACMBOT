@@ -16,6 +16,7 @@ import Collector
 import Duel
 import RecentAcm
 import DailyProblem
+import DailyFinish
 
 warnings.filterwarnings("ignore")
 app = Flask(__name__)
@@ -41,7 +42,7 @@ def handler() -> str:  # 消息处理
             requests.get(f"http://127.0.0.1:5020/send_group_msg",
                          params={"group_id": data['group_id'],
                                  "message": f"[CQ:at,qq={data['user_id']}] 欢迎加入之江ACM招新群！\n"
-                                            f"1、新进群的同学请进入洛谷注册账号（luogu.com），并在文档填写自己的信息（https://a.d4t.cn/M5hwu3）\n"
+                                            f"1、新进群的同学请进入洛谷注册账号（luogu.com），并在文档填写自己的信息（https://docs.qq.com/sheet/DYndVVVZKaHJ1ZXBh?tab=BB08J2）\n"
                                             f"2、相关入门资料群公告和群文件自取\n"
                                             f"3、如有任何疑问可以在群里直接提问或私聊管理员"})
         if 'problemset.json' not in os.listdir(os.path.dirname(__file__)):  # 不存在problemset.json就重新爬取
@@ -79,18 +80,25 @@ def handler() -> str:  # 消息处理
                 if oj_name in ['cf', 'nk', 'lg']:
                     res = AtQuery(int(qq_num), oj_name)
 
-            # 筛选出可能调用RandomProblem的data
+            # 筛选出可能调用RandomProblem和DailyFinish的data
             data4 = re.compile(r"^\[CQ:at,qq=(\d+)]\s*(....)").findall(data['message'])
             if data4 and len(data4[0]) > 1:
                 qq_num, order = data4[0]
-                if qq_num in ['3661517915'] and order == '随机一题':
+                if qq_num in ['3265310859'] and order == '随机一题':
                     qq_num = data['sender']['user_id']
                     res = RandomProblem(qq_num)
-                if qq_num in ['3661517915'] and order in ['我写好了', '我写完了']:
+                if qq_num in ['3265310859'] and order in ['我写好了', '我写完了']:
                     qq_num = data['sender']['user_id']
                     res = RandomProblemJudge(qq_num)
-                if qq_num in ['3661517915'] and order in ['每日题目']:
+                if qq_num in ['3265310859'] and order in ['每日题目']:
                     res = DailyProblem.dailyProblem()
+                if qq_num in ['3265310859'] and order == '做题汇总':
+                    if data['sender']['user_id'] in [1040530821, 1349045061, 80588807, 2832640093, 471467157, 1533585158,1109238402]:
+                        DailyFinish.get_png()
+                        file = rf"{os.path.dirname(__file__)}/solve.png"
+                        res = f'[CQ:image,file=file:{file}]'
+                    else:
+                        res = '权限不足'
             # 筛选出可能调用Bind的data
             data5 = re.compile(r"^绑定(..)\s*(.*)").findall(data['message'])
             if data5 and len(data5[0]) > 1:
@@ -110,10 +118,13 @@ def handler() -> str:  # 消息处理
                         res = Duel.accept(duel_dict, qq_num)
                     if order.lower() == 'reject':
                         print('触发了拒绝单挑')
-                        res = Duel.reject(duel_dict, qq_num)
+                        res = compilestrDuel.reject(duel_dict, qq_num)
                     if order.lower() == 'judge':
                         print('触发了单挑结算')
                         res = Duel.judge(duel_dict, qq_num)
+                    if order.lower() == 'set1':
+                        print('触发了单挑重置')
+                        res = Duel.reset(qq_num)
                 if len(data6[0].split(']')) == 2:
                     print('触发了单挑邀请')
                     challenged, rating = data6[0].split(']')
@@ -134,20 +145,28 @@ def handler() -> str:  # 消息处理
                     res = RecentAcm.get_data()
 
             if data['message'] == '/help':
-                res = (f'给我看看：查看所有关键词\n\n'
-                       f'来只xx：如果关键词xx存在，随机发送一张保存的图片)\n\n'
-                       f'近期acm：返回近期cf/nk/lg/at的比赛\n\n'
-                       f'@图片删除xx：短期内可以删除关键词xx下@的图片\n\n'
-                       f'@图片添加xx：添加@的图片到关键词xx\n\n'
-                       f'绑定cf/nk/lg 你的id：绑定对应oj的账号\n\n'
-                       f'#cf/nk/lg id：查询id在对应oj的信息\n\n@某人 '
-                       f'cf/nk/lg：如果此人已经绑定，返回其在对应oj的信息\n\n'
-                       f'@bot 随机一题：bot根据你的cf分数+0/100/200随机选一道题目，每次使用这条指令都会发出新题目\n\n'
-                       f'@bot 我写完了：结算随机一题\n\n'
-                       f'/duel @某人 800-3500：bot挑选指定分数的一道cf题目，开启你与@的用户的duel\n\n'
-                       f'/duel accept：接受duel\n\n'
-                       f'/duel reject：拒绝duel\n\n'
-                       f'/duel judge：结算duel，如果双方都没完成也会结算，可以作为换题使用')
+                res = ( f'----帮助列表----\n'
+                        f'签到：字面意思\n\n'
+                        f'给我看看：查看所有关键词\n\n'
+                        f'来只xx：如果关键词xx存在，随机发送一张保存的图片\n\n'
+                        f'近期acm：返回近期cf/nk/lg/at的比赛\n\n'
+                        f'@图片删除xx：短期内可以删除关键词xx下@的图片\n\n'
+                        f'@图片添加xx：添加@的图片到关键词xx\n\n'
+                        f'绑定cf/nk/lg 你的id：绑定对应oj的账号\n\n'
+                        f'#cf/nk/lg id：查询id在对应oj的信息\n\n@某人 '
+                        f'cf/nk/lg：如果此人已经绑定，返回其在对应oj的信息\n\n'
+                        f'@bot 随机一题：bot根据你的cf分数+0/100/200随机选一道题目，每次使用这条指令都会发出新题目\n\n'
+                        f'@bot 我写完了：结算随机一题\n\n'
+                        f'@bot 做题汇总(仅指定人员可操作）\n\n'
+                        f'/duel @某人 800-3500：bot挑选指定分数的一道cf题目，开启你与@的用户的duel\n\n'
+                        f'/duel accept：接受duel\n\n'
+                        f'/duel reject：拒绝duel\n\n'
+                        f'/duel judge：结算duel，如果双方都没完成也会结算，可以作为换题使用\n\n'
+                        f'/duel set1：重置duel状态\n\n'
+                        f'run 代码类型 代码或UbuntuPastebin链接 标准输入(可为空):运行代码，支持主流语言\n\n'
+                        f'涩图 来一张：从Pixiv获取一张美图\n\n'
+                        f'摸/摸摸@成员：摸摸你')
+                
 
         if res:
             requests.get(f"http://127.0.0.1:5020/send_group_msg",
@@ -157,65 +176,36 @@ def handler() -> str:  # 消息处理
         # 每日做题反馈
         now = datetime.now()
         print(now)
-        # if now.minute == 0 and (now.hour in [11, 23]) and 'interval' in data:
+        if now.minute == 55 and (now.hour in [11, 23]) and 'interval' in data:
+            data['group_id'] = 547460746
+            DailyFinish.get_png()
+            file = rf"{os.path.dirname(__file__)}/solve.png"
+            res = f'[CQ:image,file=file:{file}]'
+            requests.get(f"http://127.0.0.1:5020/send_group_msg",
+                         params={"group_id": data['group_id'],
+                                 "message": res})
+
+        # # 每日推荐题目更新
+        # if now.hour == 8 and now.minute == 0:
         #     data['group_id'] = 547460746
-        #     res = TodayInvoluteDog()
+        #     res = DailyProblem.dailyProblem()
         #     requests.get(f"http://127.0.0.1:5020/send_group_msg",
         #                  params={"group_id": data['group_id'],
         #                          "message": res})
-        # 每日推荐题目更新
-        if now.hour == 8 and now.minute == 0:
-            data['group_id'] = 547460746
-            res = DailyProblem.dailyProblem()
-            requests.get(f"http://127.0.0.1:5020/send_group_msg",
-                         params={"group_id": data['group_id'],
-                                 "message": res})
-        # 每日推荐题目判断
-        if 'interval' in data:
-            data['group_id'] = 547460746
-            res = DailyProblem.daliyProblemJudge()
-            requests.get(f"http://127.0.0.1:5020/send_group_msg",
-                         params={"group_id": data['group_id'],
-                                 "message": res})
+        # # 每日推荐题目判断
+        # if 'interval' in data:
+        #     data['group_id'] = 547460746
+        #     res = DailyProblem.daliyProblemJudge()
+        #     requests.get(f"http://127.0.0.1:5020/send_group_msg",
+        #                  params={"group_id": data['group_id'],
+        #                          "message": res})
 
         return 'OK Data'
     else:
         return 'No Data'
 
 
-def TodayInvoluteDog() -> str:
-    df1 = pd.read_excel('check.xlsx')  # 要查询的qq
-    df2 = pd.read_excel('qqid.xlsx')
-    qq_dic = {}
-    lazy = []
-    for i in df1['qq']:
-        print(i)
-        ac = submit = 0
-        idx = df2['qq'].to_list().index(i)
-        if not pd.isna(df2['cf'][idx]):
-            cfdata = CodeforcesQuery.get_data(df2['cf'][idx])
-            ac += cfdata['TodayAccept']
-            submit += cfdata['TodaySubmit']
-        if not pd.isna(df2['lg'][idx]):
-            lgdata = LuoguQuery.get_data(df2['lg'][idx])
-            ac += lgdata['TodayAccept']
-            submit += lgdata['TodaySubmit']
-        if not pd.isna(df2['nk'][idx]):
-            nkdata = NewcoderQuery.get_data(df2['nk'][idx])
-            ac += nkdata['TodayAccept']
-            submit += nkdata['TodaySubmit']
-        qq_dic[i] = [ac, submit]
-        if ac == submit == 0:
-            lazy.append(i)
-    solve = sorted(qq_dic.items(), key=lambda x: (x[1][0], -x[1][1]), reverse=True)
-    mess = "今日卷狗："
-    for i in range(3):
-        mess += f"[CQ:at,qq={solve[i][0]}]({solve[i][1][0]}/{solve[i][1][1]}) "
-    mess += "\n今日最佳摸鱼："
-    for i in range(-1, -max(3, len(lazy)) - 1, -1):
-        print(solve[i][0])
-        mess += f"[CQ:at,qq={solve[i][0]}]({solve[i][1][0]}/{solve[i][1][1]}) "
-    return mess
+
 
 
 def Download() -> None:
@@ -257,16 +247,16 @@ def NameQuery(oj_name: str, user_name: str) -> str:
     try:
         user_data = oj_dict[oj_name].get_data(user_name)
         # 对提交时间进行划分
-        if user_data["LatestSubmitTime"] < 120:  # 两分钟内
-            user_data["LatestSubmitTime"] = "just now"
-        elif user_data["LatestSubmitTime"] < 7200:  # 两小时内
-            user_data["LatestSubmitTime"] = f"{user_data['LatestSubmitTime'] // 60} minutes ago"
-        elif user_data["LatestSubmitTime"] < 86400:  # 一天内
-            user_data["LatestSubmitTime"] = f"{user_data['LatestSubmitTime'] // 3600} hours ago"
-        elif user_data["LatestSubmitTime"] < 172800:  # 两天内
-            user_data["LatestSubmitTime"] = f"{user_data['LatestSubmitTime'] // 86400} day ago"
+        if user_data['LatestSubmitTime'] < 120:  # 两分钟内
+            user_data['LatestSubmitTime'] = "just now"
+        elif user_data['LatestSubmitTime'] < 7200:  # 两小时内
+            user_data['LatestSubmitTime'] = f"{user_data['LatestSubmitTime'] // 60} minutes ago"
+        elif user_data['LatestSubmitTime'] < 86400:  # 一天内
+            user_data['LatestSubmitTime'] = f"{user_data['LatestSubmitTime'] // 3600} hours ago"
+        elif user_data['LatestSubmitTime'] < 172800:  # 两天内
+            user_data['LatestSubmitTime'] = f"{user_data['LatestSubmitTime'] // 86400} day ago"
         else:  # 两天以上
-            user_data["LatestSubmitTime"] = f"{user_data['LatestSubmitTime'] // 86400} days ago"
+            user_data['LatestSubmitTime'] = f"{user_data['LatestSubmitTime'] // 86400} days ago"
 
         # 对提交状态的判断
         if user_data['LatestSubmitStatus'] == 0:  # 没AC
@@ -462,5 +452,3 @@ def Bind(oj_name: str, user_name: str, qq_num: int) -> str:
 
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=5010, threaded=True)
-
-# test

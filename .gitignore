@@ -1,6 +1,7 @@
 # 本机配置与凭据
 /config/bot_settings.json
 /config/bot_settings.*.json
+!/config/bot_settings.example.json
 /config/bot_settings.json.*
 .env
 .env.*

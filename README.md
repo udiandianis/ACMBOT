@@ -6,7 +6,9 @@
 
 Windows 双击 `scripts/start.bat`，Linux 运行 `bash scripts/start.sh`。脚本会创建对应的虚拟环境并安装统一的 `requirements.txt` 依赖。Windows 也可运行 `scripts/start.bat --prepare-only` 单独准备依赖。
 
-运行前需要填写 `config/bot_settings.json`。Windows 还需先安装 Python 3.10 或更高版本和 NapCat；Linux 脚本可在 Ubuntu/Debian 自动准备 Python、系统工具、NapCat 和匹配的 Linux QQ。启动脚本自动安装机器人 Python 依赖，启动 NapCat 和机器人后端；服务已运行时跳过重复启动。
+首次部署时，将 `config/bot_settings.example.json` 复制为同目录下的 `bot_settings.json`，填写机器人 QQ 号、R2 连接信息及实际 NapCat 路径。需要管理收藏时填写 `collections.admins`；使用 AI 时填写对应服务地址、模型和密钥，使用洛谷查询时填写 Cookie。示例中的 `0` 和空值需要按实际用途填写，示例文件不参与运行，真实配置已被 Git 忽略。
+
+Windows 还需先安装 Python 3.10 或更高版本和 NapCat；Linux 脚本可在 Ubuntu/Debian 自动准备 Python、系统工具、NapCat 和匹配的 Linux QQ。启动脚本自动安装机器人 Python 依赖，启动 NapCat 和机器人后端；服务已运行时跳过重复启动。
 
 唯一运行配置是 `config/bot_settings.json`。启动脚本和后端均要求配置文件存在，缺失时直接报错。`src/settings.py` 只声明字段、读取并校验 JSON，没有配置默认值，也不使用环境变量覆盖 JSON。修改配置后重启后端；NapCat 自身的监听和上报设置还需在其 WebUI 中同步修改。
 

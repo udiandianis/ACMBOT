@@ -1,0 +1,49 @@
+{
+  "bot": {
+    "qq": 0,
+    "host": "127.0.0.1",
+    "port": 5010,
+    "request_timeout": 30
+  },
+  "napcat": {
+    "api_url": "http://127.0.0.1:5020",
+    "api_token": "",
+    "webui_port": 6099,
+    "windows_launcher": "D:\\NapCat\\Start-NapCat.bat",
+    "linux_qq_path": "~/Napcat/opt/QQ/qq"
+  },
+  "welcome": {
+    "groups": [],
+    "message": "欢迎加入！"
+  },
+  "ai": {
+    "chatgpt": {
+      "base_url": "",
+      "model": "",
+      "api_key": ""
+    },
+    "deepseek": {
+      "base_url": "",
+      "model": "",
+      "api_key": ""
+    }
+  },
+  "platforms": {
+    "luogu": {
+      "cookies": {}
+    }
+  },
+  "collections": {
+    "admins": [],
+    "r2": {
+      "endpoint": "",
+      "bucket": "",
+      "access_key_id": "",
+      "secret_access_key": "",
+      "url_expiry_seconds": 3600
+    }
+  },
+  "problemset": {
+    "refresh_time": "00:00"
+  }
+}

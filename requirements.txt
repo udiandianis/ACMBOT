@@ -1,0 +1,6 @@
+Flask
+requests
+matplotlib
+Pillow
+fonttools
+boto3

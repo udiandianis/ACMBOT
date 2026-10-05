@@ -1,1 +1,38 @@
-/img/
+# 本机配置与凭据
+/config/bot_settings.json
+/config/bot_settings.*.json
+/config/bot_settings.json.*
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+.ssh/
+
+# Python 环境与缓存
+/.venv/
+/.venv-linux/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+/build/
+/dist/
+
+# 数据库、备份及运行输出
+/resources/data/
+/resources/collections/
+/output/
+/logs/
+/.start-linux.lock
+
+# 系统生成文件
+.DS_Store
+Thumbs.db
+Desktop.ini

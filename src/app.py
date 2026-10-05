@@ -1,6 +1,6 @@
 import logging
 from flask import Flask, jsonify, request
-from .settings import Settings
+from .settings import get_settings
 from .adapters.napcat import NapCatClient
 from .commands import build_router
 from .events import GroupMessage
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def create_app(settings=None, client=None, services=None):
     """组装 HTTP 应用、配置、服务和路由；参数可注入以便测试。"""
-    settings = settings or Settings.load()
+    settings = settings or get_settings()
     client = client or NapCatClient(settings)
     if services is None:
         from .services.container import BotServices

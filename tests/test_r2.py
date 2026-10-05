@@ -5,7 +5,7 @@ from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
-from src.settings import Settings
+from tests.support import test_settings
 from src.storage import users
 from src.storage.r2 import R2Storage
 from src.services.media import MediaService
@@ -18,7 +18,8 @@ class CloudCollectionTests(unittest.TestCase):
         database = patch.object(users, 'DB_PATH', Path(self.directory.name) / 'bot.db')
         database.start()
         self.addCleanup(database.stop)
-        self.settings = replace(Settings.load(), media_admins=(1,), r2_endpoint='https://example.com',
+        users.init_db()
+        self.settings = replace(test_settings(), media_admins=(1,), r2_endpoint='https://example.com',
                                 r2_bucket='test', r2_access_key_id='test', r2_secret_access_key='test')
         self.client = Mock()
         storage = patch('src.services.media.R2Storage')
@@ -118,7 +119,7 @@ class R2StorageTests(unittest.TestCase):
         factory = patch('src.storage.r2.boto3.client')
         self.client = factory.start().return_value
         self.addCleanup(factory.stop)
-        self.storage = R2Storage(replace(Settings.load(), r2_endpoint='https://example.com', r2_bucket='test',
+        self.storage = R2Storage(replace(test_settings(), r2_endpoint='https://example.com', r2_bucket='test',
                                         r2_access_key_id='test', r2_secret_access_key='test'))
 
     def test_upload_sets_content_type(self):

@@ -50,14 +50,12 @@ def init_db():
 
 def ensure_user(qq_id):
     """确保用户记录存在，重复调用不覆盖已有字段。"""
-    init_db()
     with connect() as connection:
         connection.execute('INSERT INTO users (qq_id) VALUES (?) ON CONFLICT(qq_id) DO NOTHING', (int(qq_id),))
 
 
 def get_user(qq_id):
     """按 QQ 号返回用户字典；未找到时返回 None。"""
-    init_db()
     with connect() as connection:
         row = connection.execute('SELECT * FROM users WHERE qq_id=?', (int(qq_id),)).fetchone()
     return dict(row) if row else None
@@ -91,6 +89,5 @@ def update_user_field(qq_id, field, value):
 
 def list_users():
     """按 QQ 号排序返回所有用户字典。"""
-    init_db()
     with connect() as connection:
         return [dict(row) for row in connection.execute('SELECT * FROM users ORDER BY qq_id')]

@@ -1,4 +1,5 @@
 import logging
+import json
 from src.storage import users
 from src.providers import codeforces, nowcoder, luogu, atcoder
 
@@ -47,5 +48,5 @@ def bind(account_field, account_value, user_id):
     """将姓名或平台账号写入 SQLite；学习通账号密码按列表保存。"""
     if account_field not in users.BINDING_FIELDS.values():
         raise ValueError('不支持的账号类型')
-    users.update_user_field(user_id, account_field, repr(account_value.split()) if account_field == 'chaoxing_credentials' else account_value)
+    users.update_user_field(user_id, account_field, json.dumps(account_value.split(), ensure_ascii=False) if account_field == 'chaoxing_credentials' else account_value)
     return '绑定成功'

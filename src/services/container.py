@@ -2,12 +2,14 @@ import threading
 from ..paths import REPORT_DIRECTORY
 from . import accounts, practice, media
 from .duels import DuelService
+from ..storage import users
 
 
 class BotServices:
     def __init__(self, settings, client):
         """组装业务服务和互斥锁，初始化持久化单挑服务。"""
         self.settings, self.client = settings, client
+        users.init_db()
         self.media = media.MediaService(client, settings)
         self.duels = DuelService()
         self._practice_lock = threading.Lock()

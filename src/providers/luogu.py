@@ -2,7 +2,7 @@ import json
 import re
 import time
 import requests
-from src.settings import Settings
+from src.settings import get_settings
 from .metrics import initial_user_metrics, china_midnight
 
 
@@ -25,7 +25,7 @@ def page_data(session, url, timeout, **parameters):
 
 def fetch_user_metrics(username):
     """携带 JSON 中的 Cookie 查询洛谷评分、提交和北京时间今日指标。"""
-    settings = Settings.load()
+    settings = get_settings()
     metrics = initial_user_metrics(username)
     midnight = china_midnight()
     with requests.Session() as session:

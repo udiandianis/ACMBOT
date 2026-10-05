@@ -92,7 +92,7 @@ tests/                   功能测试
 AtCoder 提交采用分页读取，AC 总次数按提交记录计算，最近提交不局限于今天；接口限速遵循 AtCoder Problems 的要求。参考 https://github.com/kenkoooo/AtCoderProblems/blob/main/doc/api.md 。
 
 
-测试运行：`python -B -m unittest discover -s tests -v`；健康检查：`GET /health`。
+测试运行：`python -B -m unittest discover -s tests -v`。测试从配置示例创建虚构配置，使用临时数据库和模拟平台响应，无需填写真实配置或密钥。健康检查：`GET /health`。
 
 ## 云端收藏（Cloudflare R2）
 

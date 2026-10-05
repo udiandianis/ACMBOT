@@ -9,7 +9,6 @@ class DuelService:
     def __init__(self):
         """初始化单挑数据表，已有单挑状态保持不变。"""
         self.lock = threading.RLock()
-        users.init_db()
         with users.connect() as connection:
             connection.execute('''CREATE TABLE IF NOT EXISTS duels (
                 duel_id INTEGER PRIMARY KEY, group_id INTEGER NOT NULL,

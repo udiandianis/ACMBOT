@@ -5,14 +5,14 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from src.app import create_app
 from src.events import GroupMessage
-from src.settings import Settings
+from tests.support import test_settings
 from src.services.media import MediaService
 from src.storage import users
 
 
 def event(user_id=1, group_id=7, reply_id=None, text=''):
     """构造管理员的群命令事件。"""
-    parts = [{'type': 'at', 'data': {'qq': str(Settings.load().bot_qq)}},
+    parts = [{'type': 'at', 'data': {'qq': str(test_settings().bot_qq)}},
              {'type': 'text', 'data': {'text': text}}]
     if reply_id is not None:
         parts.insert(0, {'type': 'reply', 'data': {'id': str(reply_id)}})
@@ -27,8 +27,9 @@ class DeletionConfirmationTests(unittest.TestCase):
         database = patch.object(users, 'DB_PATH', Path(self.directory.name) / 'bot.db')
         database.start()
         self.addCleanup(database.stop)
+        users.init_db()
         self.client = Mock()
-        self.settings = replace(Settings.load(), media_admins=(1, 2))
+        self.settings = replace(test_settings(), media_admins=(1, 2))
         self.objects = {}
         storage = patch('src.services.media.R2Storage')
         cloud = storage.start().return_value

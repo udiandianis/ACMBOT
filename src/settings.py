@@ -1,6 +1,7 @@
 import json
 from datetime import time
 from dataclasses import dataclass, field
+from functools import lru_cache
 from .paths import CONFIG_PATH
 
 CONFIG_LAYOUT = {
@@ -20,6 +21,12 @@ CONFIG_LAYOUT = {
     },
     'problemset': {'refresh_time': 'problemset_refresh_time'},
 }
+
+
+@lru_cache(maxsize=1)
+def get_settings():
+    """复用启动时读取的配置，修改 JSON 后需重启服务。"""
+    return Settings.load()
 
 
 @dataclass(frozen=True)

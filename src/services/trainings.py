@@ -7,7 +7,7 @@ import matplotlib.pyplot as pyplot
 from src.adapters import http
 from src.paths import REPORT_DIRECTORY
 from src.fonts import configure_matplotlib
-from src.settings import Settings
+from src.settings import get_settings
 from src.storage import users
 from src.providers.luogu import page_data
 
@@ -19,7 +19,7 @@ _training_lock = threading.Lock()
 
 def load_training_problems():
     """缓存十八个训练题单的题目；请求失败或解析为空时明确报错。"""
-    settings = Settings.load()
+    settings = get_settings()
     with _training_lock:
         for training_id in TRAINING_LABELS:
             if _training_problems.get(training_id):
@@ -38,7 +38,7 @@ def load_training_problems():
 def fetch_training_progress(username):
     """查询洛谷通过题目，返回各题单完成数和累计数；拒绝将访问错误当作零。"""
     problem_lists = load_training_problems()
-    settings = Settings.load()
+    settings = get_settings()
     with requests.Session() as session:
         session.cookies.update(settings.luogu_cookies)
         session.headers['User-Agent'] = 'Mozilla/5.0'

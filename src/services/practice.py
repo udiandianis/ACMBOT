@@ -1,4 +1,3 @@
-import ast
 import json
 import random
 import threading
@@ -12,7 +11,6 @@ _problemset_lock = threading.Lock()
 
 def refresh_problemset(only_if_empty=False):
     """下载并事务更新题库；按需初始化时已有题目则跳过，失败保留原数据。"""
-    users.init_db()
     with _problemset_lock:
         with users.connect() as connection:
             if only_if_empty and connection.execute('SELECT 1 FROM codeforces_problems LIMIT 1').fetchone():
@@ -88,7 +86,7 @@ def judge_problem(user_id):
         return '暂未绑定'
     if not user.get('assigned_problem'):
         return f'[CQ:at,qq={user_id}] 暂无题目'
-    contest_id, problem_index = ast.literal_eval(user['assigned_problem'])
+    contest_id, problem_index = json.loads(user['assigned_problem'])
     started_at = user.get('assigned_at') or 0
     submission = accepted_submission(user['codeforces_handle'], contest_id, problem_index, started_at)
     if not submission:

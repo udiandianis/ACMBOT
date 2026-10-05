@@ -1,7 +1,7 @@
-import ast
+import json
 import re
 import requests
-from src.settings import Settings
+from src.settings import get_settings
 from src.storage import users
 
 
@@ -11,13 +11,13 @@ def fetch_pending_homework(user_id):
     if not credentials:
         return '暂未绑定'
     try:
-        account = ast.literal_eval(credentials)
-        if not isinstance(account, (list, tuple)) or len(account) != 2 or not all(isinstance(value, str) and value for value in account):
+        account = json.loads(credentials)
+        if not isinstance(account, list) or len(account) != 2 or not all(isinstance(value, str) and value for value in account):
             raise ValueError('invalid credentials')
         username, password = account
-    except (ValueError, SyntaxError, TypeError):
+    except (ValueError, TypeError):
         return '学习通绑定信息格式无效，请重新发送 #bind chaoxing 账号 密码'
-    timeout = Settings.load().request_timeout
+    timeout = get_settings().request_timeout
     with requests.Session() as session:
         response = session.post('https://passport2.chaoxing.com/fanyalogin',
             data={'fid': '-1', 'uname': username, 'password': password, 'refer': 'http://i.mooc.chaoxing.com'}, timeout=timeout)

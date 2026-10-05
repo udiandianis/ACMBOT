@@ -18,7 +18,6 @@ class MediaService:
         """连接 R2 并建立收藏编号、消息映射及确认记录。"""
         self.client, self.settings = client, settings
         self.cloud = R2Storage(settings)
-        users.init_db()
         with users.connect() as connection:
             connection.execute("""CREATE TABLE IF NOT EXISTS collection_items (
                 keyword TEXT NOT NULL, item_number INTEGER NOT NULL,

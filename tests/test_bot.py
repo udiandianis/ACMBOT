@@ -10,9 +10,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from unittest.mock import Mock, patch
 from src.app import create_app
 from src.settings import Settings
+from tests.support import test_settings
 from src import settings as settings_module
 from src.storage import users
-from src.services import practice, statistics, trainings
+from src.services import accounts, practice, statistics, trainings
 from src.services.duels import DuelService
 from src.providers import codeforces, luogu, chaoxing, atcoder, contests, ai
 from src.adapters.napcat import NapCatClient
@@ -33,7 +34,7 @@ class RoutingTests(unittest.TestCase):
         self.services.query.return_value = 'query result'
         self.services.bind.return_value = '绑定成功'
         self.services.statistics.return_value = 'chart'
-        self.app = create_app(Settings.load(), self.napcat, self.services)
+        self.app = create_app(test_settings(), self.napcat, self.services)
         self.client = self.app.test_client()
 
     def post(self, event):
@@ -69,7 +70,7 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual(self.post([]).status_code, 400)
 
     def test_welcome_mentions_member_with_separate_message_segment(self):
-        settings = replace(Settings.load(), welcome_groups=(7,), welcome_message='欢迎加入')
+        settings = replace(test_settings(), welcome_groups=(7,), welcome_message='欢迎加入')
         client = create_app(settings, self.napcat, self.services).test_client()
         client.post('/', json={'notice_type': 'group_increase', 'group_id': 7, 'user_id': 42})
         self.napcat.send_group.assert_called_once_with(7, [
@@ -78,7 +79,7 @@ class RoutingTests(unittest.TestCase):
         ])
 
     def test_welcome_ignores_other_groups_and_invalid_notices(self):
-        settings = replace(Settings.load(), welcome_groups=(7,))
+        settings = replace(test_settings(), welcome_groups=(7,))
         client = create_app(settings, self.napcat, self.services).test_client()
         for notice in ({'group_id': 8, 'user_id': 42}, {'group_id': 7, 'user_id': 'bad'}):
             client.post('/', json={'notice_type': 'group_increase', **notice})
@@ -191,6 +192,11 @@ class DatabaseTests(unittest.TestCase):
         users.update_user_fields(1, name='Alice', codeforces_handle='alice')
         users.update_user_fields(2, name='Bob', codeforces_handle='bob')
         return DuelService()
+
+    def test_chaoxing_binding_is_json(self):
+        accounts.bind('chaoxing_credentials', '测试账号 test-password', 1)
+        self.assertEqual(json.loads(users.get_user_field(1, 'chaoxing_credentials')),
+                         ['测试账号', 'test-password'])
 
     def test_initialization_preserves_user_data(self):
         users.update_user_fields(1, name='Alice', bot_rating=123, codeforces_handle='alice')
@@ -374,7 +380,9 @@ class SettingsTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.root = Path(self.directory.name)
-        self.config = json.loads(settings_module.CONFIG_PATH.read_text(encoding='utf-8-sig'))
+        self.config = json.loads((Path(__file__).resolve().parents[1] / 'config/bot_settings.example.json').read_text(encoding='utf-8'))
+        self.config['bot']['qq'] = 123
+        self.config['collections']['r2'].update(endpoint='https://example.invalid', bucket='test')
         self.config['ai']['chatgpt']['api_key'] = ''
         self.config['ai']['deepseek']['api_key'] = ''
         self.config['napcat']['api_token'] = ''
@@ -388,6 +396,15 @@ class SettingsTests(unittest.TestCase):
     def tearDown(self):
         self.root_patch.stop()
         self.directory.cleanup()
+
+    def test_runtime_configuration_is_reused(self):
+        settings_module.get_settings.cache_clear()
+        try:
+            with patch.object(Settings, 'load', return_value=test_settings()) as loader:
+                self.assertIs(settings_module.get_settings(), settings_module.get_settings())
+                loader.assert_called_once()
+        finally:
+            settings_module.get_settings.cache_clear()
 
     def test_configuration_from_json_only(self):
         self.config['bot'].update(qq=123, port=7777, request_timeout=4)
@@ -433,14 +450,19 @@ class SettingsTests(unittest.TestCase):
 
 class ProviderAndMediaTests(unittest.TestCase):
     def setUp(self):
+        for module in (luogu, chaoxing, trainings, practice.http):
+            configuration = patch.object(module, 'get_settings', return_value=test_settings())
+            configuration.start()
+            self.addCleanup(configuration.stop)
         self.database_directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.database_directory.cleanup)
         database_patch = patch.object(users, 'DB_PATH', Path(self.database_directory.name) / 'bot.db')
         database_patch.start()
         self.addCleanup(database_patch.stop)
+        users.init_db()
 
     def test_ai_services_use_separate_configuration(self):
-        settings = replace(Settings.load(), gpt_api_key='gpt-test', deepseek_api_key='ds-test')
+        settings = replace(test_settings(), gpt_api_key='gpt-test', deepseek_api_key='ds-test')
         for provider in ('gpt', 'deepseek'):
             with patch.object(ai.requests, 'Session') as factory:
                 session = factory.return_value.__enter__.return_value
@@ -475,7 +497,7 @@ class ProviderAndMediaTests(unittest.TestCase):
             self.assertEqual(trainings.fetch_training_progress('test'), {'by_training':{100:1, 101:1}, 'total':2})
 
     def test_forward_is_split_into_nodes(self):
-        client = NapCatClient(Settings.load())
+        client = NapCatClient(test_settings())
         with patch.object(client, 'call') as call:
             client.send_forward(7, 'first\n\nsecond')
         nodes = call.call_args.kwargs['messages']
@@ -483,12 +505,12 @@ class ProviderAndMediaTests(unittest.TestCase):
         self.assertEqual(nodes[1]['data']['content'][0]['data']['text'], 'second')
 
     def test_luogu_cookie_sent_and_expiry_reported(self):
-        settings = replace(Settings.load(), luogu_cookies={'_uid': '123', '__client_id': 'test'})
+        settings = replace(test_settings(), luogu_cookies={'_uid': '123', '__client_id': 'test'})
         response = Mock(status_code=401)
         session = Mock()
         session.headers = {}
         session.get.side_effect = [Mock(json=lambda: {'users': [{'uid': 123, 'name': 'test'}]}), response]
-        with patch.object(luogu.Settings, 'load', return_value=settings), patch.object(luogu.requests, 'Session') as factory:
+        with patch.object(luogu, 'get_settings', return_value=settings), patch.object(luogu.requests, 'Session') as factory:
             factory.return_value.__enter__.return_value = session
             with self.assertRaisesRegex(ValueError, 'Cookie 已失效'):
                 luogu.fetch_user_metrics('test')

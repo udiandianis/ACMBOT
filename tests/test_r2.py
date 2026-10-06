@@ -41,7 +41,7 @@ class CloudCollectionTests(unittest.TestCase):
             self.client.get_message.return_value = {'message': [{'type': kind, 'data': {
                 'file': 'hash' + suffix, 'url': 'https://example.com/original'}}]}
             with patch('src.services.media.requests.get', return_value=Mock(content=b'content')):
-                self.assertEqual(service.add(kind, 1), f'添加成功：{kind}-1')
+                self.assertEqual(service.add(kind, 1), '添加成功')
             self.assertEqual(self.objects[f'{kind}/1{suffix}'], b'content')
             self.assertEqual(service.random(kind), f'[CQ:{kind},file=https://example.com/get?a=1&amp;b=2]')
         self.assertEqual(service.delete('image-1', 2), '权限不足')
@@ -51,7 +51,7 @@ class CloudCollectionTests(unittest.TestCase):
     def test_text_keeps_dollar_and_newlines(self):
         service = MediaService(self.client, self.settings)
         self.text_message('hello$world\r\nsecond')
-        self.assertEqual(service.add('bjg', 1), '添加成功：bjg-1')
+        self.assertEqual(service.add('bjg', 1), '添加成功')
         self.assertEqual(service.random('bjg'), 'hello$world\r\nsecond')
         self.assertEqual(service.list(), '可以使用的关键词：\n\nbjg')
 
@@ -63,20 +63,20 @@ class CloudCollectionTests(unittest.TestCase):
             service.add('bjg', 1)
         self.assertEqual(service.list(), '没有可以使用的关键词')
         self.cloud.put.side_effect = lambda key, content: self.objects.__setitem__(key, content)
-        self.assertEqual(service.add('bjg', 1), '添加成功：bjg-2')
+        self.assertEqual(service.add('bjg', 1), '添加成功')
 
     def test_delete_clear_and_restart_never_reuse_numbers(self):
         service = MediaService(self.client, self.settings)
         self.text_message()
         for number in (1, 2, 3):
-            self.assertEqual(service.add('bjg', 1), f'添加成功：bjg-{number}')
+            self.assertEqual(service.add('bjg', 1), '添加成功')
         service.delete('bjg-2', 1)
         service = MediaService(self.client, self.settings)
-        self.assertEqual(service.add('bjg', 1), '添加成功：bjg-4')
+        self.assertEqual(service.add('bjg', 1), '添加成功')
         service.request_clear('bjg', self.event)
         self.assertEqual(service.confirm('清空', 'bjg', self.event), '清空成功：bjg')
         self.assertEqual(self.objects, {})
-        self.assertEqual(service.add('bjg', 1), '添加成功：bjg-5')
+        self.assertEqual(service.add('bjg', 1), '添加成功')
 
     def test_failed_delete_keeps_index(self):
         service = MediaService(self.client, self.settings)
@@ -93,7 +93,7 @@ class CloudCollectionTests(unittest.TestCase):
         self.text_message()
         with ThreadPoolExecutor(max_workers=2) as executor:
             results = list(executor.map(lambda service: service.add('bjg', 1), services))
-        self.assertEqual(set(results), {'添加成功：bjg-1', '添加成功：bjg-2'})
+        self.assertEqual(results, ['添加成功', '添加成功'])
         self.assertEqual(set(self.objects), {'bjg/1.txt', 'bjg/2.txt'})
 
     def test_empty_content_and_invalid_keyword_do_not_upload(self):

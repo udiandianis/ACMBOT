@@ -158,7 +158,7 @@ class MediaService:
         return '已取消删除' if cursor.rowcount else '没有待确认的删除操作'
 
     def add(self, key, reply_id):
-        """保存被回复消息的内容，返回关键词与递增编号。"""
+        """保存被回复消息的内容，成功后返回简短提示。"""
         key = self.validate_keyword(key)
         parts = segments(self.client.get_message(reply_id).get('message'))
         attachments = [part for part in parts if part.get('type') in ('image', 'video', 'file', 'record')]
@@ -188,7 +188,7 @@ class MediaService:
             connection.execute("""INSERT INTO collection_items
                 (keyword, item_number, kind, object_key) VALUES (?, ?, ?, ?)""",
                 (key, number, kind, object_key))
-        return f'添加成功：{key}-{number}'
+        return '添加成功'
 
     def delete(self, identifier, user_id):
         """管理员按固定编号删除文件，无需引用原消息。"""

@@ -13,22 +13,31 @@ PLATFORMS = {'CF': ('codeforces_handle', codeforces.fetch_user_metrics), 'LG': (
 PLATFORM_LIMITS = {platform: threading.Semaphore(8) for platform in PLATFORMS}
 
 
-def collect_statistics():
+def collect_statistics(on_progress=None):
     """并发采集用户今日统计并排名，抓取失败保留独立错误标记。"""
     records = {}
     pending_requests = {}
+    participants = [user for user in users.list_users() if user.get('name')]
+    outstanding = {}
+    completed = 0
+    if on_progress:
+        on_progress(0, len(participants))
     with ThreadPoolExecutor(max_workers=32) as executor:
-        for user in users.list_users():
-            if not user.get('name'):
-                continue
+        for user in participants:
             record = {'NAME': user['name'], 'platforms': {}, 'errors': [], 'accepted': 0, 'submitted': 0}
             records[user['qq_id']] = record
+            outstanding[user['qq_id']] = 0
             for platform, (account_field, fetch_user) in PLATFORMS.items():
                 if not user.get(account_field):
                     record['platforms'][platform] = {'accepted': 0, 'submitted': 0}
                     continue
                 future = executor.submit(fetch_statistics, platform, fetch_user, user[account_field])
                 pending_requests[future] = (user['qq_id'], platform)
+                outstanding[user['qq_id']] += 1
+            if not outstanding[user['qq_id']]:
+                completed += 1
+        if on_progress:
+            on_progress(completed, len(participants))
         for future in as_completed(pending_requests):
             user_id, platform = pending_requests[future]
             record = records[user_id]
@@ -37,6 +46,11 @@ def collect_statistics():
             except Exception:
                 record['platforms'][platform] = None
                 record['errors'].append(platform)
+            outstanding[user_id] -= 1
+            if not outstanding[user_id]:
+                completed += 1
+                if on_progress:
+                    on_progress(completed, len(participants))
     if not records:
         raise ValueError('暂无已绑定姓名的用户，请先发送 #bind name 姓名')
     for record in records.values():
@@ -71,9 +85,9 @@ def save_report(figure):
     pyplot.close(figure)
 
 
-def get_png():
+def get_png(on_progress=None):
     """采集统计并生成表格图片，失败平台显示获取失败。"""
-    _, ranking = collect_statistics()
+    _, ranking = collect_statistics(on_progress)
     rows = []
     for record in ranking:
         row = {'NAME': record['NAME']}

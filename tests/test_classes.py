@@ -49,7 +49,9 @@ class ClassBindingTests(unittest.TestCase):
              patch.object(trainings.pyplot, 'close'), \
              patch.object(trainings, 'REPORT_DIRECTORY', Path(self.directory.name)):
             clock.now.return_value.year = 2026
-            trainings.get_png()
+            update = Mock()
+            trainings.get_png(on_progress=update)
+            self.assertEqual([call.args for call in update.call_args_list], [(0, 2), (1, 2), (2, 2)])
             self.assertEqual({call.args[0]['name'] for call in fetch.call_args_list}, {'2025', '2026'})
             fetch.reset_mock()
             clock.now.return_value.year = 2027

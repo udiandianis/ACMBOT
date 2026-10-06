@@ -69,7 +69,8 @@ class RoutingTests(unittest.TestCase):
         for command, method in (('做题汇总', self.services.statistics), ('洛谷题单', self.services.training_report)):
             with self.subTest(command=command):
                 self.napcat.reset_mock()
-                def query():
+                def query(group_id):
+                    self.assertEqual(group_id, 7)
                     self.assertEqual(self.napcat.send_group.call_count, 1)
                     self.assertIn('正在查询', self.napcat.send_group.call_args.args[1])
                     return 'report image'
@@ -182,7 +183,7 @@ class RoutingTests(unittest.TestCase):
         self.services.statistics.assert_not_called()
         self.napcat.send_group.assert_not_called()
         self.post(group_event('做题汇总', (3661517915,)))
-        self.services.statistics.assert_called_once_with()
+        self.services.statistics.assert_called_once_with(7)
 
     def test_duel_validation_and_reset(self):
         self.post(group_event('#duel 850', (11,)))

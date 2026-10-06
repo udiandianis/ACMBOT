@@ -47,8 +47,14 @@ def create_app(settings=None, client=None, services=None):
         event = GroupMessage.parse(data)
         if event is None or event.user_id == settings.bot_qq:
             return jsonify({})
+        def notify_progress(text):
+            """先发送查询进度，提示发送失败时继续执行原命令。"""
+            try:
+                client.send_group(event.group_id, f'[CQ:at,qq={event.user_id}]\n{text}')
+            except Exception:
+                logger.exception('查询进度提示发送失败')
         try:
-            reply = router.dispatch(event)
+            reply = router.dispatch(event, notify_progress)
         except ValueError as error:
             from .router import Reply
             reply = Reply(str(error))

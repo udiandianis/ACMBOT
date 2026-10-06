@@ -64,6 +64,29 @@ class RoutingTests(unittest.TestCase):
         for event in ({}, group_event('hello'), dict(group_event(''), message=[]), group_event('#help', user_id=3661517915), dict(group_event('#help'), sender='bad')):
             self.assertEqual(self.post(event).status_code, 200)
         self.napcat.send_group.assert_not_called()
+
+    def test_report_progress_is_sent_before_query(self):
+        for command, method in (('做题汇总', self.services.statistics), ('洛谷题单', self.services.training_report)):
+            with self.subTest(command=command):
+                self.napcat.reset_mock()
+                def query():
+                    self.assertEqual(self.napcat.send_group.call_count, 1)
+                    self.assertIn('正在查询', self.napcat.send_group.call_args.args[1])
+                    return 'report image'
+                method.side_effect = query
+                self.post(group_event(command, mentions=(test_settings().bot_qq,)))
+                self.assertEqual(self.napcat.send_group.call_count, 2)
+                self.assertEqual(self.napcat.send_group.call_args.args, (7, 'report image'))
+                self.napcat.reset_mock()
+                self.post(group_event(command))
+                self.napcat.send_group.assert_not_called()
+
+    def test_progress_failure_does_not_cancel_report(self):
+        self.napcat.send_group.side_effect = [RuntimeError('network'), {}]
+        with self.assertLogs('src.app', level='ERROR'):
+            self.post(group_event('做题汇总', mentions=(test_settings().bot_qq,)))
+        self.services.statistics.assert_called_once()
+        self.assertEqual(self.napcat.send_group.call_args.args, (7, 'chart'))
         self.napcat.send_forward.assert_not_called()
 
     def test_invalid_json(self):

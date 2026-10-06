@@ -14,6 +14,10 @@ def register(router, services, settings):
         ('checkin', r'(?:签到|🦌)', lambda event: services.checkin(event.raw),
          '@bot 签到：在个人月历上标记今天，同日重复签到不会重复累计'),
     ]
+    progress = {
+        'training.report': '正在查询洛谷题单并生成图片，人数较多时可能需要一些时间，请稍候。',
+        'statistics.table': '正在查询各平台做题记录并生成汇总图片，人数较多时可能需要一些时间，请稍候。',
+    }
     for name, pattern, action, description in actions:
         router.register(name, pattern, lambda event, match, action=action: action(event), description,
-                        guard=lambda event: event.mentions == (settings.bot_qq,))
+                        guard=lambda event: event.mentions == (settings.bot_qq,), progress=progress.get(name, ''))

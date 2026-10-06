@@ -13,7 +13,7 @@ CONFIG_LAYOUT = {
         'chatgpt': {'base_url': 'gpt_base_url', 'model': 'gpt_model', 'api_key': 'gpt_api_key'},
         'deepseek': {'base_url': 'deepseek_base_url', 'model': 'deepseek_model', 'api_key': 'deepseek_api_key'},
     },
-    'platforms': {'luogu': {'cookies': 'luogu_cookies'}},
+    'platforms': {'luogu': {'cookies': 'luogu_cookies', 'training_max_year_gap': 'training_max_year_gap'}},
     'collections': {
         'admins': 'media_admins',
         'r2': {'endpoint': 'r2_endpoint', 'bucket': 'r2_bucket', 'access_key_id': 'r2_access_key_id',
@@ -46,6 +46,7 @@ class Settings:
     deepseek_model: str
     deepseek_api_key: str = field(repr=False)
     luogu_cookies: dict = field(repr=False)
+    training_max_year_gap: int | None
     napcat_windows_launcher: str
     napcat_linux_qq_path: str
     napcat_webui_port: int
@@ -93,6 +94,8 @@ class Settings:
             data[key] = tuple(data[key])
         if not isinstance(data['luogu_cookies'], dict):
             raise ValueError('luogu_cookies 必须是 JSON 对象')
+        if data['training_max_year_gap'] is not None and (type(data['training_max_year_gap']) is not int or data['training_max_year_gap'] < 0):
+            raise ValueError('training_max_year_gap 必须是非负整数或 null')
         for key in ('host', 'napcat_url', 'napcat_token', 'gpt_base_url', 'gpt_model', 'gpt_api_key',
                     'deepseek_base_url', 'deepseek_model', 'deepseek_api_key',
                     'napcat_windows_launcher', 'napcat_linux_qq_path', 'welcome_message', 'problemset_refresh_time',

@@ -6,7 +6,7 @@ def register(router, services, settings):
         ('practice.settle', r'结算', lambda event: services.judge_problem(event.user_id),
          '@bot 结算：检查分配题目之后的首次AC并增加机器人积分；重复结算不会重复加分'),
         ('training.report', r'洛谷题单', lambda event: services.training_report(event.group_id),
-         '@bot 洛谷题单：查看当年或上一年入学且已绑定班级、姓名和洛谷账号用户的题单完成情况'),
+         '@bot 洛谷题单：查看已绑定姓名和洛谷账号用户的题单完成情况，参与范围按配置筛选'),
         ('chaoxing.homework', r'(?:待交作业|我的学习通)', lambda event: services.pending_homework(event.user_id),
          '@bot 待交作业：返回已绑定学习通账号最近到期的最多5项未交作业'),
         ('statistics.table', r'做题汇总', lambda event: services.statistics(event.group_id),

@@ -2,6 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch
+from dataclasses import replace
+from tests.support import test_settings
 
 from src.services import accounts, trainings
 from src.storage import users
@@ -43,6 +45,7 @@ class ClassBindingTests(unittest.TestCase):
         users.update_user_fields(7, class_name='计算机2602', enrollment_year=2026, luogu_username='7')
         users.update_user_fields(8, name='未绑定洛谷', class_name='计算机2602', enrollment_year=2026)
         with patch.object(trainings, 'datetime') as clock, \
+             patch.object(trainings, 'get_settings', return_value=test_settings()) as settings, \
              patch.object(trainings, 'fetch_user_progress', side_effect=lambda user: {'name': user['name'], 'failed': True}) as fetch, \
              patch.object(trainings, 'configure_matplotlib'), \
              patch.object(trainings.pyplot, 'subplots', return_value=(Mock(), MagicMock())), \
@@ -57,3 +60,9 @@ class ClassBindingTests(unittest.TestCase):
             clock.now.return_value.year = 2027
             trainings.get_png()
             self.assertEqual({call.args[0]['name'] for call in fetch.call_args_list}, {'2026', '2027'})
+            settings.return_value = replace(test_settings(), training_max_year_gap=None)
+            fetch.reset_mock()
+            update.reset_mock()
+            trainings.get_png(on_progress=update)
+            self.assertEqual({call.args[0]['name'] for call in fetch.call_args_list}, {'2023', '2024', '2025', '2026', '2027', '未绑定班级'})
+            self.assertEqual(update.call_args_list[-1].args, (6, 6))

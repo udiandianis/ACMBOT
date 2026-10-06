@@ -30,7 +30,8 @@
   },
   "platforms": {
     "luogu": {
-      "cookies": {}
+      "cookies": {},
+      "training_max_year_gap": 1
     }
   },
   "collections": {

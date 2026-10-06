@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock, MagicMock, call, patch
 
 from src.services.progress import QueryProgress
-from src.services import statistics
+from src.services import statistics, trainings
 
 
 class QueryProgressTests(unittest.TestCase):
@@ -63,7 +63,38 @@ class QueryProgressTests(unittest.TestCase):
         self.assertEqual(records[1]['errors'], ['LG'])
         self.assertEqual(fetch.call_count, 2)
         self.assertIsNone(records[2]['platforms']['LG'])
-        self.assertIsNone(records[3]['platforms']['CF'])
+        self.assertNotIn(3, records)
+
+    def test_statistics_requires_only_name_and_today_submissions(self):
+        participants = [
+            {'qq_id': 1, 'name': '只有CF', 'codeforces_handle': 'active'},
+            {'qq_id': 2, 'name': '今日无提交', 'codeforces_handle': 'inactive'},
+            {'qq_id': 3, 'name': None, 'codeforces_handle': 'unnamed'},
+        ]
+        fetch = Mock(side_effect=lambda platform, provider, handle: {'accepted': 0, 'submitted': int(handle == 'active')})
+        with patch.object(statistics.users, 'list_users', return_value=participants), \
+             patch.object(statistics, 'fetch_statistics', fetch):
+            records, ranking = statistics.collect_statistics()
+        self.assertEqual(set(records), {1})
+        self.assertEqual(ranking[0]['NAME'], '只有CF')
+        self.assertEqual(fetch.call_count, 2)
+        with patch.object(statistics.users, 'list_users', return_value=participants[1:]), \
+             patch.object(statistics, 'fetch_statistics', return_value={'accepted': 0, 'submitted': 0}):
+            with self.assertRaisesRegex(ValueError, '今日有提交'):
+                statistics.collect_statistics()
+
+    def test_training_counts_each_finished_user_including_failure(self):
+        participants = [{'name': '用户一'}, {'name': '用户二'}]
+        update = Mock()
+        with patch.object(trainings, 'list_report_users', return_value=participants), \
+             patch.object(trainings, 'load_training_problems', return_value={100: {'P1'}}), \
+             patch.object(trainings, 'fetch_user_progress', side_effect=lambda user, problems: {'name': user['name'], 'failed': True}), \
+             patch.object(trainings, 'configure_matplotlib'), \
+             patch.object(trainings.pyplot, 'subplots', return_value=(Mock(), MagicMock())), \
+             patch.object(trainings.pyplot, 'close'), \
+             patch.object(trainings, 'REPORT_DIRECTORY'):
+            trainings.get_png(update)
+        self.assertEqual(update.call_args_list, [call(0, 2), call(1, 2), call(2, 2)])
 
     def test_report_distinguishes_unbound_zero_and_failure(self):
         record = {'NAME': '测试用户', 'platforms': {'CF': {'accepted': 0, 'submitted': 0}, 'LG': None, 'NK': None},

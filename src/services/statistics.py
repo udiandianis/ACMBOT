@@ -51,11 +51,12 @@ def collect_statistics(on_progress=None):
                 completed += 1
                 if on_progress:
                     on_progress(completed, len(participants))
-    if not records:
-        raise ValueError('暂无已绑定姓名的用户，请先发送 #bind name 姓名')
     for record in records.values():
         record['accepted'] = sum(metrics['accepted'] for metrics in record['platforms'].values() if metrics is not None)
         record['submitted'] = sum(metrics['submitted'] for metrics in record['platforms'].values() if metrics is not None)
+    records = {user_id: record for user_id, record in records.items() if record['submitted'] > 0}
+    if not records:
+        raise ValueError('暂无已绑定姓名且今日有提交的用户')
     ranking = sorted(records.values(), key=lambda record: (bool(record['errors']), -record['accepted'], -record['submitted']))
     previous_score, current_rank = None, 0
     for record in ranking:

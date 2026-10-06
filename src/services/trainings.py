@@ -90,8 +90,8 @@ def fetch_user_progress(user, problem_lists=None):
         return {'name': user['name'], 'failed': True}
 
 
-def get_png():
-    """并发生成洛谷题单完成报告，失败用户显示查询失败，不使用旧图片。"""
+def list_report_users():
+    """筛选已绑定姓名、洛谷账号并符合班级年份条件的报表用户。"""
     current_year = datetime.now(timezone(timedelta(hours=8))).year
     max_year_gap = get_settings().training_max_year_gap
     participants = [user for user in users.list_users()
@@ -101,12 +101,22 @@ def get_png():
                          and 0 <= current_year - user['enrollment_year'] <= max_year_gap))]
     if not participants:
         raise ValueError('暂无已绑定姓名和洛谷账号且符合班级年份条件的用户')
+    return participants
+
+
+def get_png(on_progress=None):
+    """并发生成洛谷题单完成报告，失败用户显示查询失败，不使用旧图片。"""
+    participants = list_report_users()
     problem_lists = load_training_problems()
+    if on_progress:
+        on_progress(0, len(participants))
     with ThreadPoolExecutor(max_workers=16) as executor:
         pending = [executor.submit(fetch_user_progress, user, problem_lists) for user in participants]
         records = []
         for future in as_completed(pending):
             records.append(future.result())
+            if on_progress:
+                on_progress(len(records), len(participants))
     records.sort(key=lambda record: (record['failed'], -record.get('total', 0)))
     rows = []
     for record in records:

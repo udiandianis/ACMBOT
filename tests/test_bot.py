@@ -55,7 +55,7 @@ class RoutingTests(unittest.TestCase):
     def test_help_matches_behavior(self):
         self.post(group_event('#help'))
         text = self.napcat.send_forward.call_args.args[1]
-        for description in ('#duel reset', '所有群成员', '#bind name', '来只关键词'):
+        for description in ('#duel reset', '已绑定姓名且今日有提交', '#bind name', '来只关键词'):
             self.assertIn(description, text)
         for removed in ('set1', '素材'):
             self.assertNotIn(removed, text)
@@ -70,7 +70,7 @@ class RoutingTests(unittest.TestCase):
             with self.subTest(command=command):
                 self.napcat.reset_mock()
                 def query(*args):
-                    self.assertEqual(args, (7,) if command == '做题汇总' else ())
+                    self.assertEqual(args, (7,))
                     self.assertEqual(self.napcat.send_group.call_count, 1)
                     self.assertIn('正在查询', self.napcat.send_group.call_args.args[1])
                     return 'report image'
@@ -568,8 +568,12 @@ class ProviderAndMediaTests(unittest.TestCase):
             self.assertFalse(codeforces.fetch_user_metrics('new')['latest_submission_accepted'])
 
     def test_statistics_failure_is_not_zero(self):
-        sample = [{'qq_id': 1, 'name': 'Alice', 'codeforces_handle': 'alice'}]
-        with patch.object(statistics.users, 'list_users', return_value=sample), patch.object(statistics, 'fetch_statistics', side_effect=RuntimeError('timeout')):
+        sample = [{'qq_id': 1, 'name': 'Alice', 'codeforces_handle': 'alice', 'luogu_username': 'alice'}]
+        def fetch(platform, provider, handle):
+            if platform == 'CF':
+                raise RuntimeError('timeout')
+            return {'accepted': 0, 'submitted': 1}
+        with patch.object(statistics.users, 'list_users', return_value=sample), patch.object(statistics, 'fetch_statistics', side_effect=fetch):
             records, _ = statistics.collect_statistics()
         self.assertIsNone(records[1]['platforms']['CF'])
         self.assertEqual(records[1]['rank'], '-')

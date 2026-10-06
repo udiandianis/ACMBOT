@@ -29,7 +29,7 @@ def collect_statistics(on_progress=None):
             outstanding[user['qq_id']] = 0
             for platform, (account_field, fetch_user) in PLATFORMS.items():
                 if not user.get(account_field):
-                    record['platforms'][platform] = {'accepted': 0, 'submitted': 0}
+                    record['platforms'][platform] = None
                     continue
                 future = executor.submit(fetch_statistics, platform, fetch_user, user[account_field])
                 pending_requests[future] = (user['qq_id'], platform)
@@ -92,7 +92,8 @@ def get_png(on_progress=None):
     for record in ranking:
         row = {'NAME': record['NAME']}
         for platform, metrics in record['platforms'].items():
-            row[platform] = f'{metrics["accepted"]}/{metrics["submitted"]}' if metrics is not None else '获取失败'
+            row[platform] = (f'{metrics["accepted"]}/{metrics["submitted"]}' if metrics is not None
+                             else '获取失败' if platform in record['errors'] else '暂未绑定')
         row['ALL'] = '部分失败' if record['errors'] else f'{record["accepted"]}/{record["submitted"]}'
         row['RANK'] = record['rank']
         rows.append(row)

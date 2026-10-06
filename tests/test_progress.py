@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, MagicMock, call, patch
 
 from src.services.progress import QueryProgress
 from src.services import statistics
@@ -62,3 +62,20 @@ class QueryProgressTests(unittest.TestCase):
         self.assertEqual(update.call_args_list, [call(0, 3), call(1, 3), call(2, 3), call(3, 3)])
         self.assertEqual(records[1]['errors'], ['LG'])
         self.assertEqual(fetch.call_count, 2)
+        self.assertIsNone(records[2]['platforms']['LG'])
+        self.assertIsNone(records[3]['platforms']['CF'])
+
+    def test_report_distinguishes_unbound_zero_and_failure(self):
+        record = {'NAME': '测试用户', 'platforms': {'CF': {'accepted': 0, 'submitted': 0}, 'LG': None, 'NK': None},
+                  'errors': ['LG'], 'accepted': 0, 'submitted': 0, 'rank': '-'}
+        figure, axes = Mock(), MagicMock()
+        with patch.object(statistics, 'collect_statistics', return_value=({}, [record])), \
+             patch.object(statistics, 'configure_matplotlib'), \
+             patch.object(statistics.pyplot, 'subplots', return_value=(figure, axes)), \
+             patch.object(statistics, 'save_report'):
+            statistics.get_png()
+        table = axes.table.call_args.kwargs
+        cells = dict(zip(table['colLabels'], table['cellText'][0]))
+        self.assertEqual(cells['CF'], '0/0')
+        self.assertEqual(cells['LG'], '获取失败')
+        self.assertEqual(cells['NK'], '暂未绑定')

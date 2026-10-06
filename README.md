@@ -62,7 +62,7 @@ tests/                   功能测试
 
 `#help` 根据当前命令注册生成，具体用法和权限以它为准。
 
-- `#bind name 姓名`、`#bind class 计算机2302`、`#bind codeforces/nowcoder/luogu/atcoder 账号`、`#bind chaoxing 账号 密码`。
+- `#bind name 姓名`、`#bind class 班级`、`#bind codeforces/nowcoder/luogu/atcoder 账号`、`#bind chaoxing 账号 密码`。
 - `#codeforces/nowcoder/luogu/atcoder 账号`：查询指定平台账号；`#平台名 @某人` 或 `@某人 平台名`：查询对方绑定的账号。
 - `#近期比赛`：CF 和 AtCoder 比赛；`#GPT 问题`：GPT 问答；`#DS 问题`：DeepSeek 问答。两者使用独立配置。
 - `@bot 随机一题`、`@bot 结算`：按 CF 完整提交历史跳过已 AC 的题目；分配后的首次 AC 可结算一次积分。已通过题目以当前绑定账号的 CF 记录为准，数据库保存当前分配题目和时间。

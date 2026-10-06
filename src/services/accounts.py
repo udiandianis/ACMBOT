@@ -52,7 +52,7 @@ def bind(account_field, account_value, user_id):
     if account_field == 'class_name':
         match = re.fullmatch(r'[^0-9\s]+([0-9]{2})[0-9]{2}', account_value)
         if not match:
-            return '用法：#bind class 计算机2302（班级名称后四位为入学年份和班号）'
+            return '用法：#bind class 班级（班级名称后四位为入学年份和班号）'
         users.update_user_fields(user_id, class_name=account_value, enrollment_year=2000 + int(match[1]))
         return '绑定成功'
     users.update_user_field(user_id, account_field, json.dumps(account_value.split(), ensure_ascii=False) if account_field == 'chaoxing_credentials' else account_value)

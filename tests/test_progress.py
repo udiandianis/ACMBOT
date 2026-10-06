@@ -6,7 +6,7 @@ from src.services import statistics
 
 
 class QueryProgressTests(unittest.TestCase):
-    def test_reports_current_counts_every_ten_seconds(self):
+    def test_reports_current_counts_every_five_seconds(self):
         send = Mock()
         progress = QueryProgress(send)
         progress.update(13, 64)
@@ -14,8 +14,8 @@ class QueryProgressTests(unittest.TestCase):
         progress.stopped.wait.side_effect = [False, False, True]
         send.side_effect = lambda _: progress.update(57, 64)
         progress.report()
-        self.assertEqual(send.call_args_list, [call('正在查询 13/64'), call('正在查询 57/64')])
-        self.assertEqual(progress.stopped.wait.call_args_list, [call(10)] * 3)
+        self.assertEqual(send.call_args_list, [call('当前进度 13/64'), call('当前进度 57/64')])
+        self.assertEqual(progress.stopped.wait.call_args_list, [call(5)] * 3)
 
     def test_finished_or_stopped_query_sends_no_progress(self):
         send = Mock()
@@ -27,12 +27,23 @@ class QueryProgressTests(unittest.TestCase):
         send.assert_not_called()
 
     def test_context_stops_timer_on_failure(self):
-        progress = QueryProgress(Mock(), interval=0.01)
+        send = Mock()
+        progress = QueryProgress(send)
         with self.assertRaises(ValueError):
             with progress as update:
                 update(0, 64)
                 raise ValueError('查询失败')
         self.assertTrue(progress.stopped.is_set())
+        self.assertFalse(progress.thread.is_alive())
+        send.assert_not_called()
+
+    def test_success_reports_final_count_even_before_first_timer(self):
+        send = Mock()
+        progress = QueryProgress(send)
+        with progress as update:
+            update(0, 64)
+            update(64, 64)
+        send.assert_called_once_with('当前进度 64/64')
         self.assertFalse(progress.thread.is_alive())
 
     def test_statistics_counts_users_including_failed_queries(self):

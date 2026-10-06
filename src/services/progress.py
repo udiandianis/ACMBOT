@@ -5,7 +5,7 @@ logger = logging.getLogger(__name__)
 
 
 class QueryProgress:
-    def __init__(self, send, interval=10):
+    def __init__(self, send, interval=5):
         """定时报告实际查询人数，结束后停止发送。"""
         self.send, self.interval = send, interval
         self.completed = self.total = 0
@@ -19,13 +19,13 @@ class QueryProgress:
             self.completed, self.total = completed, total
 
     def report(self):
-        """每十秒发送当前数量，全部查询完成后不再报告。"""
+        """每五秒发送当前数量，全部查询完成后停止定时报告。"""
         while not self.stopped.wait(self.interval):
             with self.lock:
                 completed, total = self.completed, self.total
             if total and completed < total:
                 try:
-                    self.send(f'正在查询 {completed}/{total}')
+                    self.send(f'当前进度 {completed}/{total}')
                 except Exception:
                     logger.exception('查询进度发送失败')
 
@@ -33,6 +33,11 @@ class QueryProgress:
         self.thread.start()
         return self.update
 
-    def __exit__(self, *_):
+    def __exit__(self, error_type, *_):
         self.stopped.set()
         self.thread.join()
+        if error_type is None and self.total:
+            try:
+                self.send(f'当前进度 {self.completed}/{self.total}')
+            except Exception:
+                logger.exception('最终进度发送失败')

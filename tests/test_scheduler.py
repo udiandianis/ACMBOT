@@ -34,10 +34,11 @@ class SchedulerTests(unittest.TestCase):
         stop = Mock()
         stop.is_set.return_value = False
         stop.wait.return_value = True
-        with patch.object(scheduler, 'datetime', wraps=datetime) as clock, patch.object(scheduler, 'refresh_problemset', side_effect=RuntimeError('timeout')) as refresh:
+        with patch.object(scheduler, 'datetime', wraps=datetime) as clock, patch.object(scheduler, 'refresh_problemset', side_effect=RuntimeError('timeout')) as refresh, patch.object(scheduler, 'refresh_training_problems') as refresh_training:
             clock.now.side_effect = [before, midnight, midnight, midnight]
             with self.assertLogs(scheduler.logger, level='ERROR') as logs:
                 scheduler.run_daily_refresh(stop, '00:00')
             refresh.assert_called_once_with()
+            refresh_training.assert_called_once_with()
             self.assertIn('保留原题库', logs.output[0])
             stop.wait.assert_called_once_with(60)

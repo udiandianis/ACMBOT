@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from .practice import refresh_problemset
+from .trainings import refresh_training_problems
 
 logger = logging.getLogger(__name__)
 BEIJING_TIME = timezone(timedelta(hours=8))
@@ -32,3 +33,8 @@ def run_daily_refresh(stop_event, refresh_time):
             logger.info('题库更新完成，共 %s 道题', count)
         except Exception:
             logger.exception('题库更新失败，保留原题库，下次定时任务继续尝试')
+        try:
+            count = refresh_training_problems()
+            logger.info('洛谷题单更新完成，共 %s 条题目记录', count)
+        except Exception:
+            logger.exception('洛谷题单更新失败，保留原题单，下次定时任务继续尝试')

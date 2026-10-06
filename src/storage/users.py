@@ -50,6 +50,9 @@ def init_db():
             rating INTEGER NOT NULL,
             PRIMARY KEY (contest_id, problem_index))''')
         connection.execute('CREATE INDEX IF NOT EXISTS codeforces_problems_rating ON codeforces_problems (rating)')
+        connection.execute('''CREATE TABLE IF NOT EXISTS luogu_training_problems (
+            training_id INTEGER NOT NULL, problem_id TEXT NOT NULL,
+            PRIMARY KEY (training_id, problem_id))''')
 
 
 def ensure_user(qq_id):

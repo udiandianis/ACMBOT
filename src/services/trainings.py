@@ -1,4 +1,5 @@
 import threading
+import re
 from datetime import datetime, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
@@ -14,29 +15,52 @@ from src.providers.luogu import page_data
 
 TRAINING_LABELS = dict(zip(range(100, 118), ('顺序', '分支', '循环', '数组', '字串', '函数',
     '模拟', '排序', '暴力', '递归', '贪心', '二分', '搜索', '线性', '树', '集合', '图', '数学')))
-_training_problems = {}
 _training_lock = threading.Lock()
 
 
-def load_training_problems(on_progress=None):
-    """缓存十八个训练题单的题目；请求失败或解析为空时明确报错。"""
+def read_training_problems():
+    """读取数据库中的题单题目，按题单编号分组。"""
+    problems = {}
+    with users.connect() as connection:
+        for row in connection.execute('SELECT training_id, problem_id FROM luogu_training_problems'):
+            problems.setdefault(row['training_id'], set()).add(row['problem_id'])
+    return problems
+
+
+def refresh_training_problems(only_if_missing=False, on_progress=None):
+    """完整下载后事务更新题单；任意请求失败都保留原有数据。"""
     settings = get_settings()
     with _training_lock:
+        existing = read_training_problems()
+        if only_if_missing and all(existing.get(training_id) for training_id in TRAINING_LABELS):
+            return sum(len(problems) for problems in existing.values())
+        downloaded = {}
         if on_progress:
             on_progress(0, len(TRAINING_LABELS))
         for completed, training_id in enumerate(TRAINING_LABELS, 1):
-            if not _training_problems.get(training_id):
-                response = http.get(f'https://www.luogu.com.cn/training/{training_id}',
-                                    cookies=settings.luogu_cookies, headers={'User-Agent': 'Mozilla/5.0'})
-                response.raise_for_status()
-                import re
-                problems = set(re.findall(r'href="/problem/([^"#?]+)', response.text))
-                if not problems:
-                    raise ValueError(f'洛谷题单 {training_id} 无法读取')
-                _training_problems[training_id] = problems
+            response = http.get(f'https://www.luogu.com.cn/training/{training_id}',
+                                cookies=settings.luogu_cookies, headers={'User-Agent': 'Mozilla/5.0'})
+            response.raise_for_status()
+            problems = set(re.findall(r'href="/problem/([^"#?]+)', response.text))
+            if not problems:
+                raise ValueError(f'洛谷题单 {training_id} 无法读取')
+            downloaded[training_id] = problems
             if on_progress:
                 on_progress(completed, len(TRAINING_LABELS))
-        return dict(_training_problems)
+        with users.connect() as connection:
+            connection.execute('DELETE FROM luogu_training_problems')
+            connection.executemany('INSERT INTO luogu_training_problems VALUES (?, ?)',
+                                   [(training_id, problem_id) for training_id, problems in downloaded.items() for problem_id in problems])
+        return sum(len(problems) for problems in downloaded.values())
+
+
+def load_training_problems(on_progress=None):
+    """优先读取持久化题单，数据缺失时才首次下载。"""
+    problems = read_training_problems()
+    if not all(problems.get(training_id) for training_id in TRAINING_LABELS):
+        refresh_training_problems(only_if_missing=True, on_progress=on_progress)
+        problems = read_training_problems()
+    return problems
 
 
 def fetch_training_progress(username, problem_lists=None):
@@ -116,7 +140,7 @@ def get_png(on_progress=None):
         else:
             for column, training_id in enumerate(TRAINING_LABELS, start=1):
                 completed = record['by_training'][training_id]
-                fraction = min(1, completed / max(1, len(_training_problems.get(training_id, ()))))
+                fraction = min(1, completed / max(1, len(problem_lists.get(training_id, ()))))
                 report[row_index, column].set_facecolor((1 - fraction, 1, 1 - fraction))
     figure.tight_layout()
     REPORT_DIRECTORY.mkdir(parents=True, exist_ok=True)

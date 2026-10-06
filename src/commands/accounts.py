@@ -26,8 +26,9 @@ def register(router, services, settings):
         user_id = event.mentions[0] if event.mentions else event.user_id
         return services.query_bound(user_id, BINDING_FIELDS[platform])
 
-    router.register('account.bind', r'#bind\s+(name|chaoxing|codeforces|nowcoder|luogu|atcoder)\s+(.*)', bind,
+    router.register('account.bind', r'#bind\s+(name|class|chaoxing|codeforces|nowcoder|luogu|atcoder)\s+(.*)', bind,
                     '#bind name 姓名：绑定姓名\n'
+                    '#bind class 计算机2302：绑定班级，23 表示 2023 年入学\n'
                     '#bind codeforces/nowcoder/luogu/atcoder 账号：绑定平台账号\n'
                     '#bind chaoxing 账号 密码：绑定学习通，密码保存在本机数据库；请留意群内可见性')
     router.register('account.query', r'#(codeforces|nowcoder|luogu|atcoder)(?:\s+(.*))?', query,

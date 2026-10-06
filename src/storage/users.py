@@ -4,12 +4,12 @@ from src.paths import DATA_DIRECTORY
 
 DB_PATH = DATA_DIRECTORY / 'bot.db'
 USER_FIELDS = (
-    'qq_id', 'name', 'duel_available', 'bot_rating',
+    'qq_id', 'name', 'class_name', 'enrollment_year', 'duel_available', 'bot_rating',
     'nowcoder_handle', 'codeforces_handle', 'luogu_username', 'atcoder_handle',
     'chaoxing_credentials', 'assigned_problem', 'assigned_at',
 )
 BINDING_FIELDS = {
-    'name': 'name', 'chaoxing': 'chaoxing_credentials',
+    'name': 'name', 'class': 'class_name', 'chaoxing': 'chaoxing_credentials',
     'codeforces': 'codeforces_handle', 'nowcoder': 'nowcoder_handle',
     'luogu': 'luogu_username', 'atcoder': 'atcoder_handle',
 }
@@ -34,12 +34,16 @@ def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with connect() as connection:
         connection.execute('''CREATE TABLE IF NOT EXISTS users (
-            qq_id INTEGER PRIMARY KEY, name TEXT,
+            qq_id INTEGER PRIMARY KEY, name TEXT, class_name TEXT, enrollment_year INTEGER,
             duel_available INTEGER DEFAULT 1, bot_rating INTEGER DEFAULT 0,
             nowcoder_handle TEXT, codeforces_handle TEXT, luogu_username TEXT,
             atcoder_handle TEXT, chaoxing_credentials TEXT,
             assigned_problem TEXT, assigned_at REAL,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP)''')
+        columns = {row['name'] for row in connection.execute('PRAGMA table_info(users)')}
+        for field, field_type in (('class_name', 'TEXT'), ('enrollment_year', 'INTEGER')):
+            if field not in columns:
+                connection.execute(f'ALTER TABLE users ADD COLUMN {field} {field_type}')
         connection.execute('''CREATE TABLE IF NOT EXISTS codeforces_problems (
             contest_id INTEGER NOT NULL,
             problem_index TEXT NOT NULL,

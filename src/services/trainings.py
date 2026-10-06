@@ -1,4 +1,5 @@
 import threading
+from datetime import datetime, timezone, timedelta
 from concurrent.futures import ThreadPoolExecutor
 import requests
 import matplotlib
@@ -67,9 +68,13 @@ def fetch_user_progress(user):
 
 def get_png():
     """并发生成洛谷题单完成报告，失败用户显示查询失败，不使用旧图片。"""
-    participants = [user for user in users.list_users() if user.get('name') and user.get('luogu_username')]
+    current_year = datetime.now(timezone(timedelta(hours=8))).year
+    participants = [user for user in users.list_users()
+                    if user.get('name') and user.get('luogu_username') and user.get('class_name')
+                    and user.get('enrollment_year') is not None
+                    and 0 <= current_year - user['enrollment_year'] <= 1]
     if not participants:
-        raise ValueError('暂无已绑定姓名和洛谷账号的用户')
+        raise ValueError('暂无当年或上一年入学且已绑定班级、姓名和洛谷账号的用户')
     with ThreadPoolExecutor(max_workers=16) as executor:
         records = list(executor.map(fetch_user_progress, participants))
     records.sort(key=lambda record: (record['failed'], -record.get('total', 0)))

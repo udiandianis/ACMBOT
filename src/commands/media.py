@@ -11,6 +11,7 @@ def register(router, services, settings):
     router.register('media.delete', r'删除\s*(.*)', lambda event, match: services.media.request_delete(match[1], event),
                     '引用机器人发出的内容发送 @机器人 删除关键词，或 @机器人 删除关键词-编号：仅管理员可操作，需要确认', guard=lambda event: event.mentions == (settings.bot_qq,))
     router.register('media.confirm', r'确认(删除|清空)\s+(.+)', lambda event, match: services.media.confirm(match[1], match[2], event),
-                    '@机器人 确认删除 关键词-编号 / 确认清空 关键词：由发起人在原群于 60 秒内确认', guard=lambda event: event.mentions == (settings.bot_qq,))
+                    '@机器人 确认删除 关键词-编号：由发起人在原群于 60 秒内确认删除\n'
+                    '@机器人 确认清空 关键词：由发起人在原群于 60 秒内确认清空', guard=lambda event: event.mentions == (settings.bot_qq,))
     router.register('media.cancel', r'取消删除', lambda event, match: services.media.cancel(event),
                     '@机器人 取消删除：取消自己在当前群的待确认操作', guard=lambda event: event.mentions == (settings.bot_qq,))

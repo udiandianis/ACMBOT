@@ -43,7 +43,7 @@ class FontRenderingTests(unittest.TestCase):
                 statistics.get_png()
             user = {'name': name, 'luogu_username': 'test', 'class_name': '测试班级',
                     'enrollment_year': trainings.datetime.now(trainings.timezone(trainings.timedelta(hours=8))).year}
-            with patch.object(trainings, 'REPORT_DIRECTORY', destination), patch.object(trainings.users, 'list_users', return_value=[user]), patch.object(trainings, 'fetch_user_progress', return_value=progress):
+            with patch.object(trainings, 'REPORT_DIRECTORY', destination), patch.object(trainings.users, 'list_users', return_value=[user]), patch.object(trainings, 'load_training_problems', return_value={key: {'P1'} for key in trainings.TRAINING_LABELS}), patch.object(trainings, 'fetch_user_progress', return_value=progress):
                 trainings.get_png()
             for filename in ('solve.png', 'luogu.png'):
                 with Image.open(destination / filename) as image:

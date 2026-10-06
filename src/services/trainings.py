@@ -18,27 +18,31 @@ _training_problems = {}
 _training_lock = threading.Lock()
 
 
-def load_training_problems():
+def load_training_problems(on_progress=None):
     """缓存十八个训练题单的题目；请求失败或解析为空时明确报错。"""
     settings = get_settings()
     with _training_lock:
-        for training_id in TRAINING_LABELS:
-            if _training_problems.get(training_id):
-                continue
-            response = http.get(f'https://www.luogu.com.cn/training/{training_id}',
-                                cookies=settings.luogu_cookies, headers={'User-Agent': 'Mozilla/5.0'})
-            response.raise_for_status()
-            import re
-            problems = set(re.findall(r'href="/problem/([^"#?]+)', response.text))
-            if not problems:
-                raise ValueError(f'洛谷题单 {training_id} 无法读取')
-            _training_problems[training_id] = problems
+        if on_progress:
+            on_progress(0, len(TRAINING_LABELS))
+        for completed, training_id in enumerate(TRAINING_LABELS, 1):
+            if not _training_problems.get(training_id):
+                response = http.get(f'https://www.luogu.com.cn/training/{training_id}',
+                                    cookies=settings.luogu_cookies, headers={'User-Agent': 'Mozilla/5.0'})
+                response.raise_for_status()
+                import re
+                problems = set(re.findall(r'href="/problem/([^"#?]+)', response.text))
+                if not problems:
+                    raise ValueError(f'洛谷题单 {training_id} 无法读取')
+                _training_problems[training_id] = problems
+            if on_progress:
+                on_progress(completed, len(TRAINING_LABELS))
         return dict(_training_problems)
 
 
-def fetch_training_progress(username):
+def fetch_training_progress(username, problem_lists=None):
     """查询洛谷通过题目，返回各题单完成数和累计数；拒绝将访问错误当作零。"""
-    problem_lists = load_training_problems()
+    if problem_lists is None:
+        problem_lists = load_training_problems()
     settings = get_settings()
     with requests.Session() as session:
         session.cookies.update(settings.luogu_cookies)
@@ -58,10 +62,10 @@ def fetch_training_progress(username):
     return {'by_training': completed, 'total': sum(completed.values())}
 
 
-def fetch_user_progress(user):
+def fetch_user_progress(user, problem_lists=None):
     """返回绑定用户的题单进度，抓取失败保留姓名和错误标记。"""
     try:
-        return {'name': user['name'], **fetch_training_progress(user['luogu_username']), 'failed': False}
+        return {'name': user['name'], **fetch_training_progress(user['luogu_username'], problem_lists), 'failed': False}
     except Exception:
         return {'name': user['name'], 'failed': True}
 
@@ -77,15 +81,17 @@ def get_png(on_progress=None):
                          and 0 <= current_year - user['enrollment_year'] <= max_year_gap))]
     if not participants:
         raise ValueError('暂无已绑定姓名和洛谷账号且符合班级年份条件的用户')
+    preparation_progress = (lambda completed, total: on_progress(completed, total, '准备题单')) if on_progress else None
+    problem_lists = load_training_problems(preparation_progress)
     if on_progress:
-        on_progress(0, len(participants))
+        on_progress(0, len(participants), '查询用户')
     with ThreadPoolExecutor(max_workers=16) as executor:
-        pending = [executor.submit(fetch_user_progress, user) for user in participants]
+        pending = [executor.submit(fetch_user_progress, user, problem_lists) for user in participants]
         records = []
         for future in as_completed(pending):
             records.append(future.result())
             if on_progress:
-                on_progress(len(records), len(participants))
+                on_progress(len(records), len(participants), '查询用户')
     records.sort(key=lambda record: (record['failed'], -record.get('total', 0)))
     rows = []
     for record in records:

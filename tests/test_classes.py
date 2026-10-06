@@ -46,7 +46,8 @@ class ClassBindingTests(unittest.TestCase):
         users.update_user_fields(8, name='未绑定洛谷', class_name='计算机2602', enrollment_year=2026)
         with patch.object(trainings, 'datetime') as clock, \
              patch.object(trainings, 'get_settings', return_value=test_settings()) as settings, \
-             patch.object(trainings, 'fetch_user_progress', side_effect=lambda user: {'name': user['name'], 'failed': True}) as fetch, \
+             patch.object(trainings, 'load_training_problems', return_value={100: {'P1'}}), \
+             patch.object(trainings, 'fetch_user_progress', side_effect=lambda user, problems: {'name': user['name'], 'failed': True}) as fetch, \
              patch.object(trainings, 'configure_matplotlib'), \
              patch.object(trainings.pyplot, 'subplots', return_value=(Mock(), MagicMock())), \
              patch.object(trainings.pyplot, 'close'), \
@@ -54,7 +55,7 @@ class ClassBindingTests(unittest.TestCase):
             clock.now.return_value.year = 2026
             update = Mock()
             trainings.get_png(on_progress=update)
-            self.assertEqual([call.args for call in update.call_args_list], [(0, 2), (1, 2), (2, 2)])
+            self.assertEqual([call.args for call in update.call_args_list], [(0, 2, '查询用户'), (1, 2, '查询用户'), (2, 2, '查询用户')])
             self.assertEqual({call.args[0]['name'] for call in fetch.call_args_list}, {'2025', '2026'})
             fetch.reset_mock()
             clock.now.return_value.year = 2027
@@ -65,4 +66,4 @@ class ClassBindingTests(unittest.TestCase):
             update.reset_mock()
             trainings.get_png(on_progress=update)
             self.assertEqual({call.args[0]['name'] for call in fetch.call_args_list}, {'2023', '2024', '2025', '2026', '2027', '未绑定班级'})
-            self.assertEqual(update.call_args_list[-1].args, (6, 6))
+            self.assertEqual(update.call_args_list[-1].args, (6, 6, '查询用户'))

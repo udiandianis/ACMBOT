@@ -2,10 +2,33 @@ import unittest
 from unittest.mock import Mock, call, patch
 
 from src.services.progress import QueryProgress
-from src.services import statistics
+from src.services import statistics, trainings
+from tests.support import test_settings
 
 
 class QueryProgressTests(unittest.TestCase):
+    def test_preparation_reports_real_counts_and_reuses_cache(self):
+        update = Mock()
+        response = Mock(text='<a href="/problem/P1">题目</a>')
+        with patch.object(trainings, 'get_settings', return_value=test_settings()), \
+             patch.object(trainings, 'TRAINING_LABELS', {100: '顺序', 101: '分支'}), \
+             patch.object(trainings, '_training_problems', {100: {'P0'}}), \
+             patch.object(trainings.http, 'get', return_value=response) as fetch:
+            self.assertEqual(trainings.load_training_problems(update), {100: {'P0'}, 101: {'P1'}})
+            self.assertEqual(update.call_args_list, [call(0, 2), call(1, 2), call(2, 2)])
+            self.assertEqual(fetch.call_count, 1)
+            trainings.load_training_problems()
+            self.assertEqual(fetch.call_count, 1)
+
+    def test_timer_reports_current_stage(self):
+        send = Mock()
+        progress = QueryProgress(send)
+        progress.update(7, 18, '准备题单')
+        progress.stopped = Mock()
+        progress.stopped.wait.side_effect = [False, True]
+        progress.report()
+        send.assert_called_once_with('当前进度 准备题单 7/18')
+
     def test_reports_current_counts_every_five_seconds(self):
         send = Mock()
         progress = QueryProgress(send)

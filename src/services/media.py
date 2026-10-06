@@ -130,7 +130,7 @@ class MediaService:
             connection.execute('INSERT OR REPLACE INTO collection_confirmations VALUES (?, ?, ?, ?, ?, ?)',
                 (event.group_id, event.user_id, action, target, json.dumps(items, ensure_ascii=False), now + self.CONFIRMATION_SECONDS))
         detail = f'{target}（共 {len(items)} 项）' if action == '清空' else target
-        return f'即将{action} {detail}。\n请在 {self.CONFIRMATION_SECONDS} 秒内发送 @机器人 确认{action} {target}；放弃请发送 @机器人 取消删除。'
+        return f'即将{action} {detail}。\n请在 {self.CONFIRMATION_SECONDS} 秒内发送 @bot 确认{action} {target}；放弃请发送 @bot 取消删除。'
 
     def confirm(self, action, target, event):
         """原管理员在原群确认指定操作；一次消费，过期及不匹配时不执行。"""
@@ -196,7 +196,7 @@ class MediaService:
             return '权限不足'
         key, separator, number = identifier.strip().rpartition('-')
         if not separator or not number.isascii() or not number.isdigit() or int(number) < 1:
-            return '请发送 @机器人 删除关键词-编号，例如 删除bjg-12'
+            return '请发送 @bot 删除关键词-编号，例如 删除bjg-12'
         key = self.validate_keyword(key)
         with users.connect() as connection:
             connection.execute('BEGIN IMMEDIATE')

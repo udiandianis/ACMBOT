@@ -6,15 +6,6 @@ from src.services import statistics
 
 
 class QueryProgressTests(unittest.TestCase):
-    def test_timer_reports_current_stage(self):
-        send = Mock()
-        progress = QueryProgress(send)
-        progress.update(7, 18, '准备题单')
-        progress.stopped = Mock()
-        progress.stopped.wait.side_effect = [False, True]
-        progress.report()
-        send.assert_called_once_with('当前进度 准备题单 7/18')
-
     def test_reports_current_counts_every_five_seconds(self):
         send = Mock()
         progress = QueryProgress(send)

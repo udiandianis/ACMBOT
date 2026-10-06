@@ -27,7 +27,7 @@ def read_training_problems():
     return problems
 
 
-def refresh_training_problems(only_if_missing=False, on_progress=None):
+def refresh_training_problems(only_if_missing=False):
     """完整下载后事务更新题单；任意请求失败都保留原有数据。"""
     settings = get_settings()
     with _training_lock:
@@ -35,9 +35,7 @@ def refresh_training_problems(only_if_missing=False, on_progress=None):
         if only_if_missing and all(existing.get(training_id) for training_id in TRAINING_LABELS):
             return sum(len(problems) for problems in existing.values())
         downloaded = {}
-        if on_progress:
-            on_progress(0, len(TRAINING_LABELS))
-        for completed, training_id in enumerate(TRAINING_LABELS, 1):
+        for training_id in TRAINING_LABELS:
             response = http.get(f'https://www.luogu.com.cn/training/{training_id}',
                                 cookies=settings.luogu_cookies, headers={'User-Agent': 'Mozilla/5.0'})
             response.raise_for_status()
@@ -45,8 +43,6 @@ def refresh_training_problems(only_if_missing=False, on_progress=None):
             if not problems:
                 raise ValueError(f'洛谷题单 {training_id} 无法读取')
             downloaded[training_id] = problems
-            if on_progress:
-                on_progress(completed, len(TRAINING_LABELS))
         with users.connect() as connection:
             connection.execute('DELETE FROM luogu_training_problems')
             connection.executemany('INSERT INTO luogu_training_problems VALUES (?, ?)',
@@ -54,11 +50,11 @@ def refresh_training_problems(only_if_missing=False, on_progress=None):
         return sum(len(problems) for problems in downloaded.values())
 
 
-def load_training_problems(on_progress=None):
+def load_training_problems():
     """优先读取持久化题单，数据缺失时才首次下载。"""
     problems = read_training_problems()
     if not all(problems.get(training_id) for training_id in TRAINING_LABELS):
-        refresh_training_problems(only_if_missing=True, on_progress=on_progress)
+        refresh_training_problems(only_if_missing=True)
         problems = read_training_problems()
     return problems
 
@@ -94,7 +90,7 @@ def fetch_user_progress(user, problem_lists=None):
         return {'name': user['name'], 'failed': True}
 
 
-def get_png(on_progress=None):
+def get_png():
     """并发生成洛谷题单完成报告，失败用户显示查询失败，不使用旧图片。"""
     current_year = datetime.now(timezone(timedelta(hours=8))).year
     max_year_gap = get_settings().training_max_year_gap
@@ -105,17 +101,12 @@ def get_png(on_progress=None):
                          and 0 <= current_year - user['enrollment_year'] <= max_year_gap))]
     if not participants:
         raise ValueError('暂无已绑定姓名和洛谷账号且符合班级年份条件的用户')
-    preparation_progress = (lambda completed, total: on_progress(completed, total, '准备题单')) if on_progress else None
-    problem_lists = load_training_problems(preparation_progress)
-    if on_progress:
-        on_progress(0, len(participants), '查询用户')
+    problem_lists = load_training_problems()
     with ThreadPoolExecutor(max_workers=16) as executor:
         pending = [executor.submit(fetch_user_progress, user, problem_lists) for user in participants]
         records = []
         for future in as_completed(pending):
             records.append(future.result())
-            if on_progress:
-                on_progress(len(records), len(participants), '查询用户')
     records.sort(key=lambda record: (record['failed'], -record.get('total', 0)))
     rows = []
     for record in records:

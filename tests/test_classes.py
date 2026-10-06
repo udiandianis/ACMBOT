@@ -53,9 +53,7 @@ class ClassBindingTests(unittest.TestCase):
              patch.object(trainings.pyplot, 'close'), \
              patch.object(trainings, 'REPORT_DIRECTORY', Path(self.directory.name)):
             clock.now.return_value.year = 2026
-            update = Mock()
-            trainings.get_png(on_progress=update)
-            self.assertEqual([call.args for call in update.call_args_list], [(0, 2, '查询用户'), (1, 2, '查询用户'), (2, 2, '查询用户')])
+            trainings.get_png()
             self.assertEqual({call.args[0]['name'] for call in fetch.call_args_list}, {'2025', '2026'})
             fetch.reset_mock()
             clock.now.return_value.year = 2027
@@ -63,7 +61,5 @@ class ClassBindingTests(unittest.TestCase):
             self.assertEqual({call.args[0]['name'] for call in fetch.call_args_list}, {'2026', '2027'})
             settings.return_value = replace(test_settings(), training_max_year_gap=None)
             fetch.reset_mock()
-            update.reset_mock()
-            trainings.get_png(on_progress=update)
+            trainings.get_png()
             self.assertEqual({call.args[0]['name'] for call in fetch.call_args_list}, {'2023', '2024', '2025', '2026', '2027', '未绑定班级'})
-            self.assertEqual(update.call_args_list[-1].args, (6, 6, '查询用户'))

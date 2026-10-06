@@ -69,8 +69,8 @@ class RoutingTests(unittest.TestCase):
         for command, method in (('做题汇总', self.services.statistics), ('洛谷题单', self.services.training_report)):
             with self.subTest(command=command):
                 self.napcat.reset_mock()
-                def query(group_id):
-                    self.assertEqual(group_id, 7)
+                def query(*args):
+                    self.assertEqual(args, (7,) if command == '做题汇总' else ())
                     self.assertEqual(self.napcat.send_group.call_count, 1)
                     self.assertIn('正在查询', self.napcat.send_group.call_args.args[1])
                     return 'report image'

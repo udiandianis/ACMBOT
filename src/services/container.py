@@ -53,12 +53,11 @@ class BotServices:
                 statistics.get_png(on_progress=progress if group_id is not None else None)
             return f'[CQ:image,file={(REPORT_DIRECTORY / "solve.png").as_posix()}]'
 
-    def training_report(self, group_id=None):
+    def training_report(self):
         """串行生成洛谷题单报告，返回 CQ 图片消息。"""
         from . import trainings
         with self._render_lock:
-            with QueryProgress(lambda text: self.client.send_group(group_id, text)) as progress:
-                trainings.get_png(on_progress=progress if group_id is not None else None)
+            trainings.get_png()
             return f'[CQ:image,file={(REPORT_DIRECTORY / "luogu.png").as_posix()}]'
 
     def checkin(self, event):

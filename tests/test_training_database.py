@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, call, patch
+from unittest.mock import Mock, patch
 
 from src.services import trainings
 from src.storage import users
@@ -24,11 +24,9 @@ class TrainingDatabaseTests(unittest.TestCase):
             connection.executemany('INSERT INTO luogu_training_problems VALUES (?, ?)', [(100, 'P0'), (101, 'P1')])
 
     def test_initial_download_persists_and_subsequent_reads_skip_network(self):
-        progress = Mock()
         response = Mock(text='<a href="/problem/P1">题目</a>')
         with patch.object(trainings.http, 'get', return_value=response) as fetch:
-            self.assertEqual(trainings.load_training_problems(progress), {100: {'P1'}, 101: {'P1'}})
-            self.assertEqual(progress.call_args_list, [call(0, 2), call(1, 2), call(2, 2)])
+            self.assertEqual(trainings.load_training_problems(), {100: {'P1'}, 101: {'P1'}})
             self.assertEqual(fetch.call_count, 2)
             users.init_db()
             trainings.load_training_problems()
